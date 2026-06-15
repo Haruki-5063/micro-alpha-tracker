@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # =========================================================================
 # ⚙️ 最適化設定
 # =========================================================================
-SPREADSHEET_ID = "あなたのスプレッドシートID"
+SPREADSHEET_ID = "1u3HtebzKnq2zmXDDnZq7OslCbgcnpXPPkD8LQbCvMQM"
 SHEET_NAME = "Master_Watchlist"
 
 # 畑作業に最適な「新興スモールキャップ」の制約
