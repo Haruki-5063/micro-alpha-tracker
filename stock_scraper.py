@@ -12,8 +12,8 @@ from google.oauth2.service_account import Credentials
 SPREADSHEET_ID = "1u3HtebzKnq2zmXDDnZq7OslCbgcnpXPPkD8LQbCvMQM"
 SHEET_NAME = "Master_Watchlist"
 
-MIN_MARKET_CAP = 300_000_000        # $300M (足切りライン)
-MAX_MARKET_CAP = 10_000_000_000   　# $10B
+MIN_MARKET_CAP = 300_000_000
+MAX_MARKET_CAP = 10_000_000_000
 
 THEME_KEYWORDS = {
     "AI_DataCenter": ["data center", "liquid cooling", "hbm", "optical interconnect"],
