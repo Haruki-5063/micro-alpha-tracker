@@ -72,7 +72,7 @@ def main():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     })
 
-    for count, ticker in enumerate(tickers[:30], 1):
+    for count, ticker in enumerate(tickers[:500], 1):
         try:
             stock = yf.Ticker(ticker, session=session)
             info = stock.info
