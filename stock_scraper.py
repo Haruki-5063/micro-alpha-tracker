@@ -59,32 +59,33 @@ def get_or_create_sheet():
 def main():
     tickers = get_sec_all_tickers()
     if not tickers:
+        print("📭 SECからのデータが空です。")
         return
         
-    # 🌟 テスト用ハック：確実にヒットする中小型テック株を先頭に強制挿入し、30社に絞る
-    test_tickers = ["RGTI", "ATOM", "SKYT"] + tickers[:30]
+    # 🌟 テスト用配列：検証用として、確実にQuantumテーマにヒットする「RGTI」を先頭に固定
+    test_tickers = ["RGTI"] + tickers[:20]
     
-    print(f"🐢 【手動テストモード】先頭の33社のみを安全に走査します...")
+    print(f"🐢 【手動テストモード】先頭の {len(test_tickers)} 社のみを安全に走査します...")
     discovered_gems = []
     current_date = time.strftime("%Y-%m-%d")
-    
-    # ループ対象を test_tickers に切り替える
+
     for count, ticker in enumerate(test_tickers, 1):
         try:
-            stock = yf.Ticker(ticker, session=session)
+            # 🛠️ 修正：存在しなかった session 引数を完全に排除してエラーを解決
+            stock = yf.Ticker(ticker)
             info = stock.info
             
-            # 1. 時価総額フィルター
             market_cap = info.get("marketCap", 0)
-            if not (MIN_MARKET_CAP <= market_cap <= MAX_MARKET_CAP):
-                # 弾く場合も、相手のサーバーに負荷をかけないよう超微小なウェイト
-                time.sleep(0.1)
-                continue
-                
             summary = info.get("longBusinessSummary", "").lower()
             if not summary:
-                time.sleep(0.1)
+                time.sleep(0.5)
                 continue
+            
+            # 🛠️ 修正：テスト時は時価総額フィルターを緩め、書き込みロジックの開通確認を最優先する
+            if ticker != "RGTI":
+                if not (MIN_MARKET_CAP <= market_cap <= MAX_MARKET_CAP):
+                    time.sleep(0.5)
+                    continue
             
             # 2. 12テーマの走査
             matched_theme = None
@@ -104,27 +105,23 @@ def main():
                     current_date
                 ])
             
-            # 🌟 【最重要】人間と同じ速度に見せるため、1社終わるごとに「丸々1秒」確実に休む
             time.sleep(1.0)
             
-        except Exception:
-            # エラー銘柄は静かにスルーして1秒休む
+        except Exception as e:
+            # 🛠️ 修正：予期せぬエラーが起きた場合は、ログに原因を出力するように変更
+            print(f"⚠️ {ticker} の走査中にエラーが発生: {e}")
             time.sleep(1.0)
             continue
-            
-        # 進行状況を100社ごとにログ出力
-        if count % 100 == 0:
-            print(f" 🟩 進捗: {count} / {len(tickers)} 社を安全に走査完了... (現在発見数: {len(discovered_gems)}件)")
 
-    # 3. スプレッドシートへの書き込み（ガード付き）
+    # 3. スプレッドシートへの書き込み
     if len(discovered_gems) > 0:
         ws = get_or_create_sheet()
         ws.clear()
         ws.update('A1', [['Theme', 'Ticker', 'Company_Name', 'Market_Cap_M', 'Business_Summary', 'Last_Updated']])
         ws.append_rows(discovered_gems)
-        print(f"🎉 処理完了！安全に全米を走破し、{len(discovered_gems)} 件の原石を縦型マッピングしました！")
+        print(f"🎉 成功！テストをクリアし、{len(discovered_gems)} 件の原石をスプレッドシートへ格納しました。")
     else:
-        print("📭 条件に合致する銘柄が見つかりませんでした。")
+        print("📭 テスト対象の銘柄からテーマに合致するものが検出されませんでした。")
 
 if __name__ == "__main__":
     main()
