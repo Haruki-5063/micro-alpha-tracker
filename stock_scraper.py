@@ -59,20 +59,17 @@ def get_or_create_sheet():
 def main():
     tickers = get_sec_all_tickers()
     if not tickers:
-        print("📭 スキャン対象のティッカーが空です。")
         return
         
-    print(f"🐢 並列処理を全廃し、安全第一の低速シングルスレッドモードで全米スキャンを開始します...")
+    # 🌟 テスト用ハック：確実にヒットする中小型テック株を先頭に強制挿入し、30社に絞る
+    test_tickers = ["RGTI", "ATOM", "SKYT"] + tickers[:30]
+    
+    print(f"🐢 【手動テストモード】先頭の33社のみを安全に走査します...")
     discovered_gems = []
     current_date = time.strftime("%Y-%m-%d")
     
-    # Yahooを騙すための標準ブラウザセッション
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    })
-
-    for count, ticker in enumerate(tickers[:500], 1):
+    # ループ対象を test_tickers に切り替える
+    for count, ticker in enumerate(test_tickers, 1):
         try:
             stock = yf.Ticker(ticker, session=session)
             info = stock.info
