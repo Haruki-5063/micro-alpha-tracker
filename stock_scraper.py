@@ -5,19 +5,15 @@ import requests
 import yfinance as yf
 import gspread
 from google.oauth2.service_account import Credentials
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # =========================================================================
-# ⚙️ 最適化・偽装設定
+# ⚙️ 安全第一・低速巡回設定
 # =========================================================================
 SPREADSHEET_ID = "1u3HtebzKnq2zmXDDnZq7OslCbgcnpXPPkD8LQbCvMQM"
 SHEET_NAME = "Master_Watchlist"
 
 MIN_MARKET_CAP = 100_000_000      # $100M
 MAX_MARKET_CAP = 1_500_000_000    # $1.5B
-
-# Yahooのブロックをマイルドに回避するため、スレッド数を10に調整
-MAX_WORKERS = 10
 
 THEME_KEYWORDS = {
     "AI_DataCenter": ["data center", "liquid cooling", "hbm", "optical interconnect"],
@@ -60,80 +56,78 @@ def get_or_create_sheet():
         ws.update('A1', [['Theme', 'Ticker', 'Company_Name', 'Market_Cap_M', 'Business_Summary', 'Last_Updated']])
         return ws
 
-def process_single_ticker(ticker, session):
-    """【修正】Yahooのブロックを回避するために、偽装セッションを使い回す"""
-    try:
-        # セッションをインジェクションして、ブラウザからのアクセスに見せかける
-        stock = yf.Ticker(ticker, session=session)
-        info = stock.info
-        
-        market_cap = info.get("marketCap", 0)
-        if not (MIN_MARKET_CAP <= market_cap <= MAX_MARKET_CAP):
-            return None
-            
-        summary = info.get("longBusinessSummary", "").lower()
-        if not summary:
-            return None
-        
-        for theme, keywords in THEME_KEYWORDS.items():
-            if any(kw in summary for kw in keywords):
-                return [
-                    theme,
-                    ticker,
-                    info.get("longName", ticker),
-                    round(market_cap / 1_000_000, 2),
-                    info.get("longBusinessSummary", ""),
-                    time.strftime("%Y-%m-%d")
-                ]
-    except Exception as e:
-        # 401などの重大なエラーが発生しているか確認するため、怪しいエラーだけログに出すように変更
-        if "401" in str(e) or "Unauthorized" in str(e):
-            print(f"⚠️ {ticker} がYahooに拒否されました: {e}")
-        return None
-    return None
-
 def main():
     tickers = get_sec_all_tickers()
     if not tickers:
         print("📭 スキャン対象のティッカーが空です。")
         return
         
-    print(f"🕵️ 偽装セッションを有効化し、全米スクリーニングを開始します (並列数: {MAX_WORKERS})...")
+    print(f"🐢 並列処理を全廃し、安全第一の低速シングルスレッドモードで全米スキャンを開始します...")
     discovered_gems = []
+    current_date = time.strftime("%Y-%m-%d")
     
-    # 🌟 【最重要の対策】Yahoo Financeを騙すためのクリーンなブラウザセッションを生成
+    # Yahooを騙すための標準ブラウザセッション
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     })
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # セッションオブジェクトを各スレッドに引き渡す
-        future_to_ticker = {executor.submit(process_single_ticker, ticker, session): ticker for ticker in tickers}
-        
-        for count, future in enumerate(as_completed(future_to_ticker), 1):
-            result = future.result()
-            if result:
-                print(f" ✨ 【原石発見】[{result[0]}] {result[1]} - ${result[3]:.1f}M")
-                discovered_gems.append(result)
+    for count, ticker in enumerate(tickers, 1):
+        try:
+            stock = yf.Ticker(ticker, session=session)
+            info = stock.info
+            
+            # 1. 時価総額フィルター
+            market_cap = info.get("marketCap", 0)
+            if not (MIN_MARKET_CAP <= market_cap <= MAX_MARKET_CAP):
+                # 弾く場合も、相手のサーバーに負荷をかけないよう超微小なウェイト
+                time.sleep(0.1)
+                continue
                 
-            if count % 1000 == 0:
-                print(f" 🟩 全米全企業の走査進捗: {count} / {len(tickers)} 社完了...")
+            summary = info.get("longBusinessSummary", "").lower()
+            if not summary:
+                time.sleep(0.1)
+                continue
+            
+            # 2. 12テーマの走査
+            matched_theme = None
+            for theme, keywords in THEME_KEYWORDS.items():
+                if any(kw in summary for kw in keywords):
+                    matched_theme = theme
+                    break
+            
+            if matched_theme:
+                print(f" ✨ 【原石発見】[{matched_theme}] {ticker} - ${market_cap/1e6:.1f}M")
+                discovered_gems.append([
+                    matched_theme,
+                    ticker,
+                    info.get("longName", ticker),
+                    round(market_cap / 1_000_000, 2),
+                    info.get("longBusinessSummary", ""),
+                    current_date
+                ])
+            
+            # 🌟 【最重要】人間と同じ速度に見せるため、1社終わるごとに「丸々1秒」確実に休む
+            time.sleep(1.0)
+            
+        except Exception:
+            # エラー銘柄は静かにスルーして1秒休む
+            time.sleep(1.0)
+            continue
+            
+        # 進行状況を100社ごとにログ出力
+        if count % 100 == 0:
+            print(f" 🟩 進捗: {count} / {len(tickers)} 社を安全に走査完了... (現在発見数: {len(discovered_gems)}件)")
 
-    # 3. シートへの一ッ括上書き処理
-    ws = get_or_create_sheet()
-    
-    # 【安全設計】もし途中でブロックされて0件だった場合は、既存のシートを破壊（クリア）しないようにガードをかける
+    # 3. スプレッドシートへの書き込み（ガード付き）
     if len(discovered_gems) > 0:
-        print(f"🎉 データの安全を確認。{len(discovered_gems)}件の原石をスプレッドシートへ射出します。")
-        ws.clear() 
+        ws = get_or_create_sheet()
+        ws.clear()
         ws.update('A1', [['Theme', 'Ticker', 'Company_Name', 'Market_Cap_M', 'Business_Summary', 'Last_Updated']])
         ws.append_rows(discovered_gems)
-        print("✨ スプレッドシートの更新が完全に完了しました！")
+        print(f"🎉 処理完了！安全に全米を走破し、{len(discovered_gems)} 件の原石を縦型マッピングしました！")
     else:
-        print("📭 警告：今回の走査で取得できた銘柄が0件です。Yahooにブロックされた可能性があるため、既存シートのクリアをスキップして保護しました。")
+        print("📭 条件に合致する銘柄が見つかりませんでした。")
 
 if __name__ == "__main__":
     main()
