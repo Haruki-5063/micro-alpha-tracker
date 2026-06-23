@@ -330,7 +330,15 @@ def main():
                     cash_runway = f"{round(abs(latest_cash) / abs(latest_loss), 1)} Q"
                 elif latest_loss >= 0:
                     cash_runway = "Black (黒字)"
-        except Exception:
+        except Exception as e:
+            # 🚨 【デバッグ核心部】何が原因で落ちたのかをログに冷酷に吐き出す
+            print(f"❌ [{ticker}] 財務計算で例外発生: {type(e).__name__} - {e}")
+            try:
+                print(f"   -> quarterly_financials インデックス一覧: {list(q_financials.index) if q_financials is not None else 'None'}")
+                print(f"   -> quarterly_balance_sheet インデックス一覧: {list(q_balance.index) if q_balance is not None else 'None'}")
+            except Exception:
+                print("   -> 財務諸表データそのものが取得できていないか、Indexにアクセスできません。")
+                
             volume_ratio, rd_ratio_str, cash_runway = 1.0, "Error", "Error"
             ticker_q_values = {f"Rev_YoY_{q}": "" for q in sorted_quarters}
 
