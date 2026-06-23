@@ -178,8 +178,10 @@ def fetch_sec_clean_context(ticker: str) -> str:
             "backlog", "Remaining Performance Obligations", "RPO", 
             "contract backlog", "unfunded backlog"
         ]
-        
         final_context = extract_target_section(cleaned_all_text, backlog_keywords, window=12000)
+        
+        print(f"   [DEBUG] {ticker}: SECから抽出された文字数 = {len(final_context)}文字 (キーワードヒット数チェック)")
+        
         return final_context
         
     except Exception as e:
