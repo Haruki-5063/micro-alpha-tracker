@@ -103,7 +103,7 @@ def notebooklm_style_cleaner(html_content: str) -> str:
 
     return text.strip()
 
-def extract_target_section(clean_text: str, keywords: list, window: int = 12000) -> str:
+def extract_target_section(clean_text: str, keywords: list, window: int = 8000) -> str:
     text_lower = clean_text.lower()
     extracted_sections = []
     found_positions = set()
@@ -178,7 +178,7 @@ def fetch_sec_clean_context(ticker: str) -> str:
             "backlog", "Remaining Performance Obligations", "RPO", 
             "contract backlog", "unfunded backlog"
         ]
-        final_context = extract_target_section(cleaned_all_text, backlog_keywords, window=12000)
+        final_context = extract_target_section(cleaned_all_text, backlog_keywords, window=8000)
         
         print(f"   [DEBUG] {ticker}: SECから抽出された文字数 = {len(final_context)}文字 (キーワードヒット数チェック)")
         
@@ -200,7 +200,7 @@ def ask_gemini_sec_analysis(ticker, summary, sec_text):
     client = genai.Client(api_key=api_key)
     
     # 負荷軽減のため、12万文字から「最新の重要箇所」として先頭8万文字に少し絞る
-    truncated_sec = sec_text[:80000]
+    truncated_sec = sec_text[:10000]
     input_context = f"--- Business Summary (yfinance) ---\n{summary}\n\n--- SEC 10-Q/10-K Text ---\n{truncated_sec}"
     
     prompt = f"""
