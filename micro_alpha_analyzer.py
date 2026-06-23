@@ -354,10 +354,6 @@ def main():
             backlog_source = ai_res.get("backlog_source_text", "N/A")
             time.sleep(0.3)
 
-        # 財務計算（ここから元のコードに綺麗に繋がります）
-        try:
-            history = stock.history(period="30d")
-
         # 財務計算
         try:
             history = stock.history(period="30d")
@@ -383,7 +379,7 @@ def main():
                         if col_key in ticker_q_values and not math.isnan(val):
                             ticker_q_values[col_key] = f"{round(val * 100, 1)}%"
 
-            # 🌟【改善】R&D項目の有無で、エラーと開示なしを冷酷に区別
+            # R&D項目の有無でエラーと開示なしを区別
             rd_ratio_str = "NO_R&D(開示なし)"
             if rev_idx:
                 latest_rev = q_financials.loc[rev_idx[0]].iloc[0]
